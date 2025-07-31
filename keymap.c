@@ -10,6 +10,7 @@ enum custom_keycodes {
   HSV_0_255_255,
   HSV_74_255_255,
   HSV_169_255_255,
+  BSPC_SHIFT
 };
 
 
@@ -22,7 +23,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     CW_TOGG,        KC_Q,           KC_W,           KC_E,           KC_R,           KC_T,                                           KC_Y,           KC_U,           KC_I,           KC_O,           KC_P,           KC_BSLS,        
     KC_LEFT_SHIFT,  KC_A,           KC_S,           KC_D,           KC_F,           KC_G,                                           KC_H,           KC_J,           KC_K,           KC_L,           KC_SCLN,        MT(MOD_RSFT, KC_QUOTE),
     KC_LEFT_GUI,    MT(MOD_LALT, KC_Z),KC_X,           KC_C,           KC_V,           KC_B,                                           KC_N,           KC_M,           KC_COMMA,       KC_DOT,         MT(MOD_RALT, KC_SLASH),KC_RIGHT_CTRL,  
-                                                    LT(1, KC_ENTER),MT(MOD_LCTL, KC_TAB),                                MT(MOD_LSFT, KC_BSPC),LT(2, KC_SPACE)
+                                                    LT(1, KC_ENTER),MT(MOD_LCTL, KC_TAB),                                BSPC_SHIFT,LT(2, KC_SPACE)
   ),
   [1] = LAYOUT_voyager(
     KC_ESCAPE,      KC_F1,          KC_F2,          KC_F3,          KC_F4,          KC_F5,                                          KC_F6,          KC_F7,          KC_F8,          KC_F9,          KC_F10,         KC_F11,         
@@ -49,6 +50,10 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 
 
+
+bool bspc_shift_held = false;
+uint16_t bspc_shift_timer = 0;
+bool other_key_pressed = false;
 
 
 
@@ -93,6 +98,31 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         rgblight_sethsv(169,255,255);
       }
       return false;
+    case BSPC_SHIFT:
+        if (record->event.pressed) {
+            bspc_shift_held = true;
+            bspc_shift_timer = timer_read();
+            other_key_pressed = false;  // Reset at press
+        } else {
+            if (bspc_shift_held) {
+                if (other_key_pressed) {
+                    register_code(KC_LSFT);
+                    unregister_code(KC_LSFT);
+                } else {
+                    register_code(KC_BSPC);
+                    unregister_code(KC_BSPC);
+                }
+                bspc_shift_held = false;
+            }
+        }
+        return false;
+
+    default:
+        if (record->event.pressed && bspc_shift_held) {
+            // If another key is pressed while BSPC_SHIFT is down, treat as hold
+            other_key_pressed = true;
+        }
+        return true;
   }
   return true;
 }
