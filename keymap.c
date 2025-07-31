@@ -53,8 +53,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 bool bspc_shift_held = false;
 uint16_t bspc_shift_timer = 0;
-bool other_key_pressed = false;
-
+bool bspc_shift_sent_shift = false;
 
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
@@ -102,25 +101,22 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         if (record->event.pressed) {
             bspc_shift_held = true;
             bspc_shift_timer = timer_read();
-            other_key_pressed = false;  // Reset at press
+            bspc_shift_sent_shift = false;
         } else {
-            if (bspc_shift_held) {
-                if (other_key_pressed) {
-                    register_code(KC_LSFT);
-                    unregister_code(KC_LSFT);
-                } else {
-                    register_code(KC_BSPC);
-                    unregister_code(KC_BSPC);
-                }
-                bspc_shift_held = false;
+            if (bspc_shift_sent_shift) {
+                unregister_code(KC_LSFT);
+            } else {
+                tap_code(KC_BSPC);
             }
+            bspc_shift_held = false;
         }
         return false;
 
     default:
-        if (record->event.pressed && bspc_shift_held) {
-            // If another key is pressed while BSPC_SHIFT is down, treat as hold
-            other_key_pressed = true;
+        if (record->event.pressed && bspc_shift_held && !bspc_shift_sent_shift) {
+            // Trigger shift behavior
+            register_code(KC_LSFT);
+            bspc_shift_sent_shift = true;
         }
         return true;
   }
