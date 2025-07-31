@@ -5,6 +5,11 @@
 #define ZSA_SAFE_RANGE SAFE_RANGE
 #endif
 
+#define REPEAT_DELAY 500     // ms before first repeat
+#define REPEAT_INTERVAL 40  // ms between repeats
+#define QUOTE_RSFT_REPEAT_ON_HOLD 0
+#define BSPC_SHIFT_REPEAT_ON_HOLD 1
+
 enum custom_keycodes {
   RGB_SLD = ZSA_SAFE_RANGE,
   HSV_0_255_255,
@@ -55,10 +60,12 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 bool bspc_shift_held = false;
 uint16_t bspc_shift_timer = 0;
 bool bspc_shift_sent_shift = false;
+uint16_t bspc_shift_repeat_timer = 0;
+
 bool quote_rsft_held = false;
 uint16_t quote_rsft_timer = 0;
 bool quote_rsft_sent_shift = false;
-
+uint16_t quote_rsft_repeat_timer = 0;
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
   switch (keycode) {
@@ -104,8 +111,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     case BSPC_SHIFT:
         if (record->event.pressed) {
             bspc_shift_held = true;
-            bspc_shift_timer = timer_read();
             bspc_shift_sent_shift = false;
+            bspc_shift_timer = timer_read();
+            if (QUOTE_RSFT_REPEAT_ON_HOLD) {
+              bspc_shift_repeat_timer = bspc_shift_timer;
+            }
         } else {
             if (bspc_shift_sent_shift) {
                 unregister_code(KC_LSFT);
@@ -118,8 +128,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     case QUOTE_RSFT:
       if (record->event.pressed) {
         quote_rsft_held = true;
-        quote_rsft_timer = timer_read();
         quote_rsft_sent_shift = false;
+        quote_rsft_timer = timer_read();
+        if (QUOTE_RSFT_REPEAT_ON_HOLD) {
+          quote_rsft_repeat_timer = quote_rsft_timer;
+        }
       } else {
         if (quote_rsft_sent_shift) {
           unregister_code(KC_RSFT);
@@ -146,4 +159,27 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
   return true;
 }
 
+void matrix_scan_user(void) {
+  if (BSPC_SHIFT_REPEAT_ON_HOLD) {
+    if (bspc_shift_held && !bspc_shift_sent_shift) {
+      if (timer_elapsed(bspc_shift_timer) > REPEAT_DELAY) {
+        if (timer_elapsed(bspc_shift_repeat_timer) > REPEAT_INTERVAL) {
+          tap_code(KC_BSPC);
+          bspc_shift_repeat_timer = timer_read();
+        }
+      }
+    }
+  }
+
+  if (QUOTE_RSFT_REPEAT_ON_HOLD) {
+    if (quote_rsft_held && !quote_rsft_sent_shift) {
+      if (timer_elapsed(quote_rsft_timer) > REPEAT_DELAY) {
+        if (timer_elapsed(quote_rsft_repeat_timer) > REPEAT_INTERVAL) {
+          tap_code(KC_QUOTE);
+          quote_rsft_repeat_timer = timer_read();
+        }
+      }
+    }
+  }
+}
 
