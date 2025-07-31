@@ -10,7 +10,8 @@ enum custom_keycodes {
   HSV_0_255_255,
   HSV_74_255_255,
   HSV_169_255_255,
-  BSPC_SHIFT
+  BSPC_SHIFT,
+  QUOTE_RSFT,
 };
 
 
@@ -21,7 +22,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [0] = LAYOUT_voyager(
     DUAL_FUNC_0,    KC_1,           KC_2,           KC_3,           KC_4,           KC_5,                                           KC_6,           KC_7,           KC_8,           KC_9,           KC_0,           KC_MINUS,       
     CW_TOGG,        KC_Q,           KC_W,           KC_E,           KC_R,           KC_T,                                           KC_Y,           KC_U,           KC_I,           KC_O,           KC_P,           KC_BSLS,        
-    KC_LEFT_SHIFT,  KC_A,           KC_S,           KC_D,           KC_F,           KC_G,                                           KC_H,           KC_J,           KC_K,           KC_L,           KC_SCLN,        MT(MOD_RSFT, KC_QUOTE),
+    KC_LEFT_SHIFT,  KC_A,           KC_S,           KC_D,           KC_F,           KC_G,                                           KC_H,           KC_J,           KC_K,           KC_L,           KC_SCLN,        QUOTE_RSFT,
     KC_LEFT_GUI,    MT(MOD_LALT, KC_Z),KC_X,           KC_C,           KC_V,           KC_B,                                           KC_N,           KC_M,           KC_COMMA,       KC_DOT,         MT(MOD_RALT, KC_SLASH),KC_RIGHT_CTRL,  
                                                     LT(1, KC_ENTER),MT(MOD_LCTL, KC_TAB),                                BSPC_SHIFT,LT(2, KC_SPACE)
   ),
@@ -54,6 +55,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 bool bspc_shift_held = false;
 uint16_t bspc_shift_timer = 0;
 bool bspc_shift_sent_shift = false;
+bool quote_rsft_held = false;
+uint16_t quote_rsft_timer = 0;
+bool quote_rsft_sent_shift = false;
 
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
@@ -111,14 +115,33 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             bspc_shift_held = false;
         }
         return false;
+    case QUOTE_RSFT:
+      if (record->event.pressed) {
+        quote_rsft_held = true;
+        quote_rsft_timer = timer_read();
+        quote_rsft_sent_shift = false;
+      } else {
+        if (quote_rsft_sent_shift) {
+          unregister_code(KC_RSFT);
+        } else {
+          tap_code(KC_QUOTE);
+        }
+        quote_rsft_held = false;
+      }
+      return false;
 
     default:
-        if (record->event.pressed && bspc_shift_held && !bspc_shift_sent_shift) {
-            // Trigger shift behavior
-            register_code(KC_LSFT);
-            bspc_shift_sent_shift = true;
-        }
-        return true;
+      // if another key is pressed while QUOTE_RSFT is held, trigger shift
+      if (record->event.pressed && quote_rsft_held && !quote_rsft_sent_shift) {
+        register_code(KC_RSFT);
+        quote_rsft_sent_shift = true;
+      }
+      if (record->event.pressed && bspc_shift_held && !bspc_shift_sent_shift) {
+          // Trigger shift behavior
+          register_code(KC_LSFT);
+          bspc_shift_sent_shift = true;
+      }
+      return true;
   }
   return true;
 }
