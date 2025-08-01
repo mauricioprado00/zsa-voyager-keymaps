@@ -56,7 +56,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 
 
-
+uint16_t virtual_shift = 0;
 bool bspc_shift_held = false;
 uint16_t bspc_shift_timer = 0;
 bool bspc_shift_sent_shift = false;
@@ -66,8 +66,43 @@ bool quote_rsft_held = false;
 uint16_t quote_rsft_timer = 0;
 bool quote_rsft_sent_shift = false;
 uint16_t quote_rsft_repeat_timer = 0;
+bool quote_rsft_mod_shift = false;
+
+bool process_bspc_shift(uint16_t keycode, keyrecord_t *record) {
+  if (keycode == BSPC_SHIFT) {
+    if (record->event.pressed) {
+        bspc_shift_held = true;
+        bspc_shift_sent_shift = false;
+        bspc_shift_timer = timer_read();
+        if (QUOTE_RSFT_REPEAT_ON_HOLD) {
+          bspc_shift_repeat_timer = bspc_shift_timer;
+        }
+    } else {
+        if (bspc_shift_sent_shift) {
+            unregister_code(KC_LSFT);
+            virtual_shift--;
+        } else {
+            tap_code(KC_BSPC);
+        }
+        bspc_shift_held = false;
+    }
+    return false;
+  }
+
+  if (record->event.pressed && bspc_shift_held && !bspc_shift_sent_shift) {
+      // Trigger shift behavior
+      register_code(KC_LSFT);
+      virtual_shift++;
+      bspc_shift_sent_shift = true;
+  }
+
+  return true;
+}
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+  bool result = true;
+  bool mod_shift = get_mods() & MOD_MASK_SHIFT;
+  result  = process_bspc_shift(keycode, record) && result;
   switch (keycode) {
 
     case DUAL_FUNC_0:
@@ -108,23 +143,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         rgblight_sethsv(169,255,255);
       }
       return false;
-    case BSPC_SHIFT:
-        if (record->event.pressed) {
-            bspc_shift_held = true;
-            bspc_shift_sent_shift = false;
-            bspc_shift_timer = timer_read();
-            if (QUOTE_RSFT_REPEAT_ON_HOLD) {
-              bspc_shift_repeat_timer = bspc_shift_timer;
-            }
-        } else {
-            if (bspc_shift_sent_shift) {
-                unregister_code(KC_LSFT);
-            } else {
-                tap_code(KC_BSPC);
-            }
-            bspc_shift_held = false;
-        }
-        return false;
     case QUOTE_RSFT:
       if (record->event.pressed) {
         quote_rsft_held = true;
@@ -133,11 +151,17 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         if (QUOTE_RSFT_REPEAT_ON_HOLD) {
           quote_rsft_repeat_timer = quote_rsft_timer;
         }
+        quote_rsft_mod_shift = virtual_shift;
       } else {
         if (quote_rsft_sent_shift) {
           unregister_code(KC_RSFT);
+          virtual_shift--;
         } else {
-          tap_code(KC_QUOTE);
+          if (!mod_shift && quote_rsft_mod_shift) {
+            tap_code16(S(KC_QUOTE));
+          } else {
+            tap_code(KC_QUOTE);
+          }
         }
         quote_rsft_held = false;
       }
@@ -147,16 +171,13 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
       // if another key is pressed while QUOTE_RSFT is held, trigger shift
       if (record->event.pressed && quote_rsft_held && !quote_rsft_sent_shift) {
         register_code(KC_RSFT);
+        virtual_shift++;
         quote_rsft_sent_shift = true;
       }
-      if (record->event.pressed && bspc_shift_held && !bspc_shift_sent_shift) {
-          // Trigger shift behavior
-          register_code(KC_LSFT);
-          bspc_shift_sent_shift = true;
-      }
-      return true;
+
+      return result;
   }
-  return true;
+  return result;
 }
 
 void matrix_scan_user(void) {
