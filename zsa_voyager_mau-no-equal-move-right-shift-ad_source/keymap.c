@@ -7,8 +7,9 @@
 
 #define REPEAT_DELAY 500     // ms before first repeat
 #define REPEAT_INTERVAL 40  // ms between repeats
-#define QUOTE_RSFT_REPEAT_ON_HOLD 0
+#define SCLN_RSFT_REPEAT_ON_HOLD 0
 #define BSPC_SHIFT_REPEAT_ON_HOLD 1
+#define SCLN_RSFT_TAP_CODE KC_SCLN
 
 enum custom_keycodes {
   RGB_SLD = ZSA_SAFE_RANGE,
@@ -16,7 +17,7 @@ enum custom_keycodes {
   HSV_74_255_255,
   HSV_169_255_255,
   BSPC_SHIFT,
-  QUOTE_RSFT,
+  SCLN_RSFT,
 };
 
 
@@ -27,7 +28,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [0] = LAYOUT_voyager(
     KC_ESCAPE,      KC_1,           KC_2,           KC_3,           KC_4,           KC_5,                                           KC_6,           KC_7,           KC_8,           KC_9,           KC_0,           KC_MINUS,       
     CW_TOGG,        KC_Q,           KC_W,           KC_E,           KC_R,           KC_T,                                           KC_Y,           KC_U,           KC_I,           KC_O,           KC_P,           KC_BSLS,        
-    KC_LEFT_SHIFT,  KC_A,           KC_S,           KC_D,           KC_F,           KC_G,                                           KC_H,           KC_J,           KC_K,           KC_L,           MT(MOD_RSFT, KC_SCLN),QUOTE_RSFT,
+    KC_LEFT_SHIFT,  KC_A,           KC_S,           KC_D,           KC_F,           KC_G,                                           KC_H,           KC_J,           KC_K,           KC_L,           SCLN_RSFT,KC_QUOTE,
     KC_LEFT_GUI,    MT(MOD_LALT, KC_Z),KC_X,           KC_C,           KC_V,           KC_B,                                           KC_N,           KC_M,           KC_COMMA,       KC_DOT,         MT(MOD_RALT, KC_SLASH),KC_RIGHT_CTRL,  
                                                     LT(1, KC_ENTER),MT(MOD_LCTL, KC_TAB),                                BSPC_SHIFT,LT(2, KC_SPACE)
   ),
@@ -61,11 +62,11 @@ uint16_t bspc_shift_timer = 0;
 bool bspc_shift_sent_shift = false;
 uint16_t bspc_shift_repeat_timer = 0;
 
-bool quote_rsft_held = false;
-uint16_t quote_rsft_timer = 0;
-bool quote_rsft_sent_shift = false;
-uint16_t quote_rsft_repeat_timer = 0;
-bool quote_rsft_mod_shift = false;
+bool scln_rsft_held = false;
+uint16_t scln_rsft_timer = 0;
+bool scln_rsft_sent_shift = false;
+uint16_t scln_rsft_repeat_timer = 0;
+bool scln_rsft_mod_shift = false;
 
 bool process_bspc_shift(uint16_t keycode, keyrecord_t *record) {
   if (keycode == BSPC_SHIFT) {
@@ -73,7 +74,7 @@ bool process_bspc_shift(uint16_t keycode, keyrecord_t *record) {
         bspc_shift_held = true;
         bspc_shift_sent_shift = false;
         bspc_shift_timer = timer_read();
-        if (QUOTE_RSFT_REPEAT_ON_HOLD) {
+        if (SCLN_RSFT_REPEAT_ON_HOLD) {
           bspc_shift_repeat_timer = bspc_shift_timer;
         }
     } else {
@@ -142,36 +143,36 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         rgblight_sethsv(169,255,255);
       }
       return false;
-    case QUOTE_RSFT:
+    case SCLN_RSFT:
       if (record->event.pressed) {
-        quote_rsft_held = true;
-        quote_rsft_sent_shift = false;
-        quote_rsft_timer = timer_read();
-        if (QUOTE_RSFT_REPEAT_ON_HOLD) {
-          quote_rsft_repeat_timer = quote_rsft_timer;
+        scln_rsft_held = true;
+        scln_rsft_sent_shift = false;
+        scln_rsft_timer = timer_read();
+        if (SCLN_RSFT_REPEAT_ON_HOLD) {
+          scln_rsft_repeat_timer = scln_rsft_timer;
         }
-        quote_rsft_mod_shift = virtual_shift;
+        scln_rsft_mod_shift = virtual_shift;
       } else {
-        if (quote_rsft_sent_shift) {
+        if (scln_rsft_sent_shift) {
           unregister_code(KC_RSFT);
           virtual_shift--;
         } else {
-          if (!mod_shift && quote_rsft_mod_shift) {
-            tap_code16(S(KC_QUOTE));
+          if (!mod_shift && scln_rsft_mod_shift) {
+            tap_code16(S(SCLN_RSFT_TAP_CODE));
           } else {
-            tap_code(KC_QUOTE);
+            tap_code(SCLN_RSFT_TAP_CODE);
           }
         }
-        quote_rsft_held = false;
+        scln_rsft_held = false;
       }
       return false;
 
     default:
-      // if another key is pressed while QUOTE_RSFT is held, trigger shift
-      if (record->event.pressed && quote_rsft_held && !quote_rsft_sent_shift) {
+      // if another key is pressed while SCLN_RSFT is held, trigger shift
+      if (record->event.pressed && scln_rsft_held && !scln_rsft_sent_shift) {
         register_code(KC_RSFT);
         virtual_shift++;
-        quote_rsft_sent_shift = true;
+        scln_rsft_sent_shift = true;
       }
 
       return result;
@@ -191,12 +192,12 @@ void matrix_scan_user(void) {
     }
   }
 
-  if (QUOTE_RSFT_REPEAT_ON_HOLD) {
-    if (quote_rsft_held && !quote_rsft_sent_shift) {
-      if (timer_elapsed(quote_rsft_timer) > REPEAT_DELAY) {
-        if (timer_elapsed(quote_rsft_repeat_timer) > REPEAT_INTERVAL) {
-          tap_code(KC_QUOTE);
-          quote_rsft_repeat_timer = timer_read();
+  if (SCLN_RSFT_REPEAT_ON_HOLD) {
+    if (scln_rsft_held && !scln_rsft_sent_shift) {
+      if (timer_elapsed(scln_rsft_timer) > REPEAT_DELAY) {
+        if (timer_elapsed(scln_rsft_repeat_timer) > REPEAT_INTERVAL) {
+          tap_code(SCLN_RSFT_TAP_CODE);
+          scln_rsft_repeat_timer = timer_read();
         }
       }
     }
