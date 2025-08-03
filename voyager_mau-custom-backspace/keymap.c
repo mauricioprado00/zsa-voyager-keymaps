@@ -117,8 +117,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
           register_code16(KC_ESCAPE);
         } else {
           unregister_code16(KC_ESCAPE);
-        }  
-      }  
+        }
+      }
       return false;
     case RGB_SLD:
       if (record->event.pressed) {
