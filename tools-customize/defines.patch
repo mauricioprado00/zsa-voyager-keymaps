@@ -1,0 +1,15 @@
+--- orig.c	2025-08-18 22:32:48.121649019 +0300
++++ orig-mod1.c	2025-08-18 22:35:24.568000414 +0300
+@@ -5,6 +5,12 @@
+ #define ZSA_SAFE_RANGE SAFE_RANGE
+ #endif
+ 
++#define REPEAT_DELAY 500     // ms before first repeat
++#define REPEAT_INTERVAL 40  // ms between repeats
++#define SCLN_RSFT_REPEAT_ON_HOLD 0
++#define BSPC_SHIFT_REPEAT_ON_HOLD 1
++#define SCLN_RSFT_TAP_CODE KC_SCLN
++
+ enum custom_keycodes {
+   RGB_SLD = ZSA_SAFE_RANGE,
+   HSV_0_255_255,
