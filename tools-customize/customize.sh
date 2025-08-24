@@ -33,6 +33,7 @@ declare -A replacements=(
     # ;["KC_QUOTE"]="QUOTE_RSFT"
     ["MT(MOD_LSFT, KC_BSPC)"]="BSPC_SHIFT"
     ["MT(MOD_RSFT, KC_SCLN)"]="SCLN_RSFT"
+    ["MT(MOD_RSFT, KC_I)"]="I_RSFT"
 )
 
 # Loop through the replacements and apply them to $source

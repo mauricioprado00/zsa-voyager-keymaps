@@ -120,6 +120,38 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
       }
       return false;
 
+    case I_RSFT:
+      if (record->event.pressed) {
+        if (mod_shift) {
+          scln_rsft_sent_tap = true;
+          tap_code(I_RSFT_TAP_CODE);
+        } else {
+          scln_rsft_sent_tap = false;
+          scln_rsft_held = true;
+          scln_rsft_sent_shift = false;
+          scln_rsft_timer = timer_read();
+          if (I_RSFT_REPEAT_ON_HOLD) {
+            scln_rsft_repeat_timer = scln_rsft_timer;
+          }
+          scln_rsft_mod_shift = virtual_shift;
+        }
+      } else {
+        if (scln_rsft_sent_tap) {
+          // nothing to do, all done already.
+        } else if (scln_rsft_sent_shift) {
+          unregister_code(KC_RSFT);
+          virtual_shift--;
+        } else {
+          if (!mod_shift && scln_rsft_mod_shift) {
+            tap_code16(S(I_RSFT_TAP_CODE));
+          } else {
+            tap_code(I_RSFT_TAP_CODE);
+          }
+        }
+        scln_rsft_held = false;
+      }
+      return false;
+
     default:
       // if another key is pressed while SCLN_RSFT is held, trigger shift
       if (record->event.pressed && scln_rsft_held && !scln_rsft_sent_shift) {
@@ -150,6 +182,17 @@ void matrix_scan_user(void) {
       if (timer_elapsed(scln_rsft_timer) > REPEAT_DELAY) {
         if (timer_elapsed(scln_rsft_repeat_timer) > REPEAT_INTERVAL) {
           tap_code(SCLN_RSFT_TAP_CODE);
+          scln_rsft_repeat_timer = timer_read();
+        }
+      }
+    }
+  }
+
+  if (I_RSFT_REPEAT_ON_HOLD) {
+    if (scln_rsft_held && !scln_rsft_sent_shift) {
+      if (timer_elapsed(scln_rsft_timer) > REPEAT_DELAY) {
+        if (timer_elapsed(scln_rsft_repeat_timer) > REPEAT_INTERVAL) {
+          tap_code(I_RSFT_TAP_CODE);
           scln_rsft_repeat_timer = timer_read();
         }
       }
