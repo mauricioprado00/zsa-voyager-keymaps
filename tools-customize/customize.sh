@@ -34,6 +34,8 @@ declare -A replacements=(
     ["MT(MOD_LSFT, KC_BSPC)"]="BSPC_SHIFT"
     ["MT(MOD_RSFT, KC_SCLN)"]="SCLN_RSFT"
     ["MT(MOD_RSFT, KC_I)"]="I_RSFT"
+    ["LSFT(KC_INTERNATIONAL_4)"]="L1_ENTER_L4"
+    ["RSFT(KC_INTERNATIONAL_4)"]="L2_SPACE_L4"
 )
 
 # Loop through the replacements and apply them to $source

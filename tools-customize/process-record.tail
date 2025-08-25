@@ -65,6 +65,28 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
       }
       return false;
+    case L1_ENTER_L4:
+      if (record->event.pressed) {
+          layer_move(1);
+      } else {
+          if (record->tap.count) {
+              tap_code(KC_ENT);
+          } else {
+              layer_move(4);
+          }
+      }
+      return false;
+    case L2_SPACE_L4:
+      if (record->event.pressed) {
+          layer_move(2);
+      } else {
+          if (record->tap.count) {
+              tap_code(KC_SPACE);
+          } else {
+              layer_move(4);
+          }
+      }
+      return false;
     case RGB_SLD:
       if (record->event.pressed) {
         rgblight_mode(1);

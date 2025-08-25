@@ -1,6 +1,6 @@
 --- orig.c	2025-08-18 22:32:48.121649019 +0300
 +++ orig-mod1.c	2025-08-18 22:35:24.568000414 +0300
-@@ -5,6 +5,15 @@
+@@ -5,6 +5,17 @@
  #define ZSA_SAFE_RANGE SAFE_RANGE
  #endif
  
@@ -12,6 +12,8 @@
 +#define DUAL_FUNC_0 LT(14, KC_7)
 +#define I_RSFT_REPEAT_ON_HOLD 0
 +#define I_RSFT_TAP_CODE KC_I
++#define L1_ENTER_L4 LSFT(KC_INTERNATIONAL_4)
++#define L2_SPACE_L4 RSFT(KC_INTERNATIONAL_4)
 +
  enum custom_keycodes {
    RGB_SLD = ZSA_SAFE_RANGE,

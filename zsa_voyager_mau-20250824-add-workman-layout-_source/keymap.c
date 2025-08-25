@@ -231,20 +231,36 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
   result  = process_bspc_shift(keycode, record) && result;
   switch (keycode) {
 
+
     case DUAL_FUNC_0:
       if (record->tap.count > 0) {
         if (record->event.pressed) {
-          register_code16(KC_EQUAL);
+          register_code16(KC_ENTER);
         } else {
-          unregister_code16(KC_EQUAL);
+          unregister_code16(KC_ENTER);
         }
       } else {
         if (record->event.pressed) {
-          register_code16(KC_ESCAPE);
+          layer_move(1);
         } else {
-          unregister_code16(KC_ESCAPE);
+          layer_move(4);
+        }  
+      }  
+      return false;
+    case DUAL_FUNC_1:
+      if (record->tap.count > 0) {
+        if (record->event.pressed) {
+          register_code16(KC_SPACE);
+        } else {
+          unregister_code16(KC_SPACE);
         }
-      }
+      } else {
+        if (record->event.pressed) {
+          layer_move(2);
+        } else {
+          layer_move(4);
+        }  
+      }  
       return false;
     case RGB_SLD:
       if (record->event.pressed) {
