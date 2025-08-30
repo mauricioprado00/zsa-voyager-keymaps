@@ -7,8 +7,10 @@
 
 #define REPEAT_DELAY 500     // ms before first repeat
 #define REPEAT_INTERVAL 40  // ms between repeats
+#define TAP_MAX_INTERVAL 250  // ms between presses to be increase tap counter
 #define SCLN_RSFT_REPEAT_ON_HOLD 0
-#define BSPC_SHIFT_REPEAT_ON_HOLD 1
+#define BSPC_SHIFT_REPEAT_ON_HOLD 0
+#define BSPC_SHIFT_REPEAT_ON_DOUBLE_TAP_HOLD 1
 #define SCLN_RSFT_TAP_CODE KC_SCLN
 #define DUAL_FUNC_0 LT(14, KC_7)
 #define I_RSFT_REPEAT_ON_HOLD 0
@@ -74,6 +76,9 @@ bool bspc_shift_held = false;
 uint16_t bspc_shift_timer = 0;
 bool bspc_shift_sent_shift = false;
 uint16_t bspc_shift_repeat_timer = 0;
+bool bspc_shift_double_tap_hold = false;
+uint16_t bspc_shift_tap_counter = 0;
+uint16_t bspc_shift_tap_press_timer = 0;
 
 bool scln_rsft_sent_tap = false;
 bool scln_rsft_held = false;
@@ -88,10 +93,25 @@ bool process_bspc_shift(uint16_t keycode, keyrecord_t *record) {
         bspc_shift_held = true;
         bspc_shift_sent_shift = false;
         bspc_shift_timer = timer_read();
+        if (
+          bspc_shift_tap_press_timer > 0
+          && timer_elapsed(bspc_shift_tap_press_timer) <= TAP_MAX_INTERVAL
+        ) {
+          bspc_shift_tap_counter++;
+        } else {
+          bspc_shift_tap_counter = 1;
+        }
+        if (bspc_shift_tap_counter == 2) {
+          bspc_shift_double_tap_hold = true;
+        } else {
+          bspc_shift_double_tap_hold = false;
+        }
+        bspc_shift_tap_press_timer = timer_read();
         if (SCLN_RSFT_REPEAT_ON_HOLD) {
           bspc_shift_repeat_timer = bspc_shift_timer;
         }
     } else {
+        bspc_shift_double_tap_hold = false;
         if (bspc_shift_sent_shift) {
             unregister_code(KC_LSFT);
             virtual_shift--;
@@ -237,6 +257,17 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 void matrix_scan_user(void) {
   if (BSPC_SHIFT_REPEAT_ON_HOLD) {
     if (bspc_shift_held && !bspc_shift_sent_shift) {
+      if (timer_elapsed(bspc_shift_timer) > REPEAT_DELAY) {
+        if (timer_elapsed(bspc_shift_repeat_timer) > REPEAT_INTERVAL) {
+          tap_code(KC_BSPC);
+          bspc_shift_repeat_timer = timer_read();
+        }
+      }
+    }
+  }
+
+  if (BSPC_SHIFT_REPEAT_ON_DOUBLE_TAP_HOLD) {
+    if (bspc_shift_double_tap_hold) {
       if (timer_elapsed(bspc_shift_timer) > REPEAT_DELAY) {
         if (timer_elapsed(bspc_shift_repeat_timer) > REPEAT_INTERVAL) {
           tap_code(KC_BSPC);
