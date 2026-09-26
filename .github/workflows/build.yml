@@ -9,6 +9,8 @@ name: Build firmware
 on:
   push:
     branches: [main]
+    # Docs-only pushes don't change any firmware.
+    paths-ignore: ['**.md']
   workflow_dispatch:
     inputs:
       keymaps:
@@ -54,7 +56,8 @@ jobs:
             if ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
               BEFORE=$(git rev-parse --verify -q HEAD^ || git hash-object -t tree /dev/null)
             fi
-            candidates=$(git diff --name-only "$BEFORE" HEAD | awk -F/ 'NF > 1 { print $1 }' | sort -u)
+            # A .md file doesn't change the firmware, so it doesn't mark its folder.
+            candidates=$(git diff --name-only "$BEFORE" HEAD | awk -F/ 'NF > 1 && !/\.md$/ { print $1 }' | sort -u)
           fi
 
           keymaps=$(for d in $candidates; do
