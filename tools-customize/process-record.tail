@@ -36,7 +36,7 @@ bool process_bspc_shift(uint16_t keycode, keyrecord_t *record) {
           bspc_shift_double_tap_hold = false;
         }
         bspc_shift_tap_press_timer = timer_read();
-        if (SCLN_RSFT_REPEAT_ON_HOLD) {
+        if (BSPC_SHIFT_REPEAT_ON_HOLD) {
           bspc_shift_repeat_timer = bspc_shift_timer;
         }
     } else {
