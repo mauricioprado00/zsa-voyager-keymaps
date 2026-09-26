@@ -11,6 +11,10 @@ and it will map the specially defined keys:
 
 which behaves like shift immediatelly after a following key is pressed, without need to wait for the release of the first key to produce the shifted key.
 
+The script skips a `keymap.c` that is already customized (one that has
+`#define REPEAT_DELAY`). If a patch does not apply, it restores the original
+file and exits non-zero.
+
 
 
 ## Compile the firmware
@@ -49,6 +53,11 @@ keymap gets a GitHub release named after its folder, with the `.bin` attached:
 - A new keymap folder gets a new release.
 - A change to an existing folder rebuilds it and replaces the `.bin` on its
   release, moving the tag to the new commit.
+
+Before building, the workflow runs `tools-customize/customize.sh` on the
+keymap's `keymap.c`, so an Oryx export can be committed as is. An already
+customized `keymap.c` is left alone; if the customization fails, the job stops
+and nothing is built or released.
 
 To rebuild without a push, run the workflow from the Actions tab with a list of
 folder names, or `all`. A folder without `keymap.json` fails the build.

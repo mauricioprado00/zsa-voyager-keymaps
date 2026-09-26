@@ -18,6 +18,13 @@ fi
 
 base=$(dirname $0)
 
+# defines.patch adds REPEAT_DELAY first, so its presence means the file was
+# already customized.
+if grep -q '^#define REPEAT_DELAY' "$source"; then
+    echo "$source is already customized, skipping."
+    exit 0
+fi
+
 backup=$(mktemp /tmp/keymap_backup.XXXXXX)
 cp "$source" "$backup"
 echo "Backup created at: $backup"
@@ -25,8 +32,14 @@ echo "Backup created at: $backup"
 # patch $source -l -F0 ${base}/defines.patch
 # patch $source -l -F0 ${base}/custom-keycodes.patch
 
-patch $source ${base}/defines.patch
-patch $source ${base}/custom-keycodes.patch
+# --forward fails instead of prompting when a patch looks already applied.
+for p in defines.patch custom-keycodes.patch; do
+    if ! patch --forward --no-backup-if-mismatch -r - "$source" "${base}/$p"; then
+        cp "$backup" "$source"
+        echo "Error: $p does not apply to $source; restored the original." >&2
+        exit 1
+    fi
+done
 
 # Define replacement patterns as an associative array
 declare -A replacements=(

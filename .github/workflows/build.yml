@@ -97,6 +97,11 @@ jobs:
           fi
           cp -r "keymaps/$KEYMAP" "qmk_firmware/keyboards/$KEYBOARD/keymaps/$KEYMAP"
 
+      # Skips a keymap.c that is already customized; a patch that does not
+      # apply fails the job before anything is built or released.
+      - name: Customize keymap.c
+        run: ./keymaps/tools-customize/customize.sh "qmk_firmware/keyboards/$KEYBOARD/keymaps/$KEYMAP/keymap.c"
+
       - name: Build
         working-directory: qmk_firmware
         env:
