@@ -70,6 +70,21 @@ when prompted to put the Voyager in bootloader mode. See the
 [flashing guide](https://www.zsa.io/flash) for downloads and the Linux udev
 rules Keymapp needs.
 
+### Flash from the command line
+
+The Voyager's bootloader is a USB DFU device, so `dfu-util` can flash it
+directly, with the same arguments QMK's `:flash` target uses:
+
+```bash
+bin/flash-voyager /tmp/zsa_voyager_zsa_voyager_mau-20260926-add-mouse-layer_source.bin
+```
+
+It waits until the keyboard is in bootloader mode (press the reset button on
+the back), then runs
+`dfu-util -d 3297:0791 -a 0 -s 0x08002000:leave -D <file.bin>`. Without sudo
+it needs ZSA's udev rules in `/etc/udev/rules.d/50-zsa.rules` (the same rules
+Keymapp needs).
+
 Notes:
 
 - From `firmware25` on, Oryx support is a QMK community module

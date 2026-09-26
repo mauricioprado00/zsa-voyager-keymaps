@@ -1,0 +1,24 @@
+#!/bin/bash
+# Flash a Voyager firmware .bin with dfu-util, the same way Keymapp and
+# QMK's :flash target do. Needs ZSA's udev rules (/etc/udev/rules.d/50-zsa.rules)
+# to run without sudo.
+#
+# Usage: bin/flash-voyager zsa_voyager_<keymap-folder>.bin
+
+set -euo pipefail
+
+bin="${1:-}"
+if [[ -z "$bin" || ! -f "$bin" ]]; then
+    echo "Usage: $0 zsa_voyager_<keymap-folder>.bin" >&2
+    exit 1
+fi
+
+# The Voyager's bootloader: USB ID 3297:0791, firmware starts after the 8 KB bootloader.
+device=3297:0791
+
+if ! dfu-util -l 2>/dev/null | grep -q "$device"; then
+    echo "Press the reset button on the back of the Voyager to enter bootloader mode..."
+    until dfu-util -l 2>/dev/null | grep -q "$device"; do sleep 0.5; done
+fi
+
+dfu-util -d "$device" -a 0 -s 0x08002000:leave -D "$bin"
