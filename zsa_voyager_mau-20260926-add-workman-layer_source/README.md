@@ -1,76 +1,78 @@
 # zsa_voyager_mau-20260926-add-workman-layer
 
-QWERTY base layer plus a Workman layer and a mouse layer.
+QWERTY base layer plus a Workman layer, a mouse layer, and a layer picker to
+switch between them.
 
 ## Layers
 
-| Layer | Contents                                   |
-|-------|--------------------------------------------|
-| 0     | QWERTY (base)                              |
-| 1     | Workman (letters only, rest falls to 0)    |
-| 2     | F-keys, symbols, numpad (hold Enter)       |
-| 3     | Brackets, navigation (hold Space)          |
-| 4     | RGB, media, QK_BOOT (MO(4) from layer 3)   |
-| 5     | Mouse                                      |
+| Layer | Contents                                              | Reached by                 |
+|-------|-------------------------------------------------------|----------------------------|
+| 0     | QWERTY (base)                                         | picker + J                 |
+| 1     | Workman (letters only, rest falls through to 0)       | picker + K                 |
+| 2     | Mouse                                                 | picker + L, or hold Enter + `TO(2)` |
+| 3     | Layer picker                                          | hold `MO(3)`, left of Q    |
+| 4     | F-keys, symbols, numpad                               | hold Enter (`LT(4)`)       |
+| 5     | Brackets, navigation                                  | hold Space (`LT(5)`)       |
+| 6     | RGB, media, volume, LED_LEVEL, QK_BOOT                | hold Space + `MO(6)`       |
 
-Workman sits below the symbol/nav layers on purpose. A higher layer wins on
-every key it defines, so with Workman as layer 1, holding Enter (L2) or Space
-(L3) shows symbols and arrows instead of Workman letters. The old attempts put
-Workman at layer 4, which covered layers 1-3 and needed custom thumb code to
-work around it (see the `workman` branch).
+Workman sits below the symbol, nav and RGB layers on purpose. A higher layer
+wins on every key it defines, so with Workman as layer 1, holding Enter or
+Space shows symbols and arrows instead of Workman letters. The old attempts put
+Workman above those layers and needed custom thumb code to work around it (see
+the `workman` branch).
 
 ## Switching layers
 
-| From        | Key                      | Double-tap goes to |
-|-------------|--------------------------|--------------------|
-| QWERTY (0)  | A (`DANCE_0`)            | Mouse (5)          |
-| QWERTY (0)  | D (`DANCE_1`)            | Workman (1)        |
-| Workman (1) | H, D's position (`DANCE_2`) | QWERTY (0)      |
-| Mouse (5)   | A position (`TO(0)`)     | QWERTY (0)         |
+Hold the key left of Q (`MO(3)`) and press, on the right home row:
+
+| Key | Goes to     |
+|-----|-------------|
+| J   | QWERTY (0)  |
+| K   | Workman (1) |
+| L   | Mouse (2)   |
+
+The `TO()` fires while the picker is held, so the new layer stays after you
+let go. The picker key is transparent on Workman and Mouse, so it works from
+every mode, and a stray press on its own does nothing. The mouse layer also
+has `TO(0)` on the A position.
+
+## Customizations
+
+`tools-customize/customize.sh` (run by CI) replaces:
+
+| Layer | Oryx keycode             | Replaced with | Key         |
+|-------|--------------------------|---------------|-------------|
+| 0     | `MT(MOD_LSFT, KC_BSPC)`  | `BSPC_SHIFT`  | Backspace / Left Shift |
+| 0     | `MT(MOD_RSFT, KC_SCLN)`  | `SCLN_RSFT`   | `;` / Right Shift      |
+| 1     | `MT(MOD_RSFT, KC_QUOTE)` | `QUOTE_RSFT`  | `'` / Right Shift      |
+
+So QWERTY's `;` and Workman's `'` behave the same way: tap sends the key on
+release, however long it was held, and it becomes Right Shift only when another
+key is pressed while it's down. See [CUSTOMIZATIONS.md](../CUSTOMIZATIONS.md).
+
+Workman's I is a plain `KC_I` (the `I_RSFT` replacement finds nothing here).
 
 ## Known problems
 
-### Holding A, D or H types nothing
+### Rolling off `;` or `'` turns it into Shift
 
-The three tap dances only define single tap and double tap. If the key is
-still down when the tapping term (150 ms) expires, `dance_step()` returns
-`SINGLE_HOLD`, which the `dance_N_finished()` switches don't handle. A slow
-press drops the letter, and holding the key does not auto-repeat.
-
-Fix in Oryx: set each tap dance's **hold** action to the same letter.
-
-### `dd` / `aa` followed by a pause switches layers
-
-A double tap only counts if no other key is pressed within the tapping term
-after the second tap. Words typed straight through (`added`, `address`) are
-fine: the next letter interrupts the dance and it outputs `dd`. But `add`,
-`odd`, or vim's `dd` followed by a 150 ms pause moves to Workman; `aa`
-followed by a pause moves to the mouse layer.
-
-Fix: move the switches back to rarely doubled keys (e.g. 3), or use a combo.
-
-### No mouse layer from Workman
-
-Layer 1 defines A as plain `KC_A`, so `DANCE_0` is unreachable from Workman.
-And `TO(0)` in the mouse layer always returns to QWERTY, not to the layer you
-came from.
-
-### Rolling off Workman's I turns it into Shift
-
-`tools-customize/customize.sh` replaces layer 1's `MT(MOD_RSFT, KC_I)` with
-`I_RSFT` (same handler style as `SCLN_RSFT` on layer 0). It has no tapping
-term: any other key pressed while I is down makes I a Right Shift and drops
-the `i`. I is on the right-pinky home key in Workman, so fast rolls like
-"in", "is", "it" and "-ing" come out as `N`, `S`, `T`, `NG`. Stock `MT()`
-would treat those quick rolls as taps.
-
-Fix: drop the `MT(MOD_RSFT, KC_I)` line from `customize.sh` to keep Oryx's
-behaviour on I (the `;` key on layer 0 is unaffected), or make the handler
-only switch to Shift after a hold delay.
+The custom Right Shift keys have no tapping term. If the next key goes down
+before `;` (QWERTY) or `'` (Workman) is released, that key is shifted and the
+`;` / `'` is lost. For example `foo();` + Enter typed quickly can give
+Shift+Enter, and `don't` rolled quickly can give `donT`. Stock `MT()` would
+count a quick roll as a tap.
 
 ### Oryx's modded mouse/media key handling is dropped
 
 `customize.sh` replaces `process_record_user()` wholesale with
 `tools-customize/process-record.tail`, which lacks Oryx's
-`QK_MODS ... QK_MODS_MAX` block. That block only matters for modifier +
-mouse/consumer keycodes, and this keymap has none.
+`QK_MODS ... QK_MODS_MAX` block. It only matters for modifier + mouse/consumer
+keycodes, and this keymap has none.
+
+## Fixed in this version
+
+- Tap dances on A, D and H (dropped letters on hold, `dd`/`aa` + pause switched
+  layers) are gone; the picker replaces them.
+- Mouse is reachable from Workman, and Mouse can go straight back to Workman.
+- Workman's I no longer becomes Shift when rolled.
+- Layer 6 (QK_BOOT, RGB, media) is reachable again through `MO(6)`.
