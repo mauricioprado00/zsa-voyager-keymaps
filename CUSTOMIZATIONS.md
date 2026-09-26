@@ -114,10 +114,11 @@ Defined in `tools-customize/defines.patch`:
 ## Known quirks
 
 - On press, `BSPC_SHIFT` resets its repeat timer only when
-  `SCLN_RSFT_REPEAT_ON_HOLD` is set, not its own flag. With the defaults, the
-  first repeat on double-tap-and-hold therefore fires as soon as `REPEAT_DELAY`
-  has passed, without waiting one more `REPEAT_INTERVAL`. You can't feel the
-  difference, but a single-hold repeat would behave the same way if it were
-  turned on.
+  `SCLN_RSFT_REPEAT_ON_HOLD` is set, not its own flag. This is a copy-paste slip,
+  but it has no effect while `REPEAT_DELAY` is larger than `REPEAT_INTERVAL`: by
+  the time the delay has passed, the repeat timer is always more than
+  `REPEAT_INTERVAL` old, whether it was reset or not. The first repeat fires at
+  `REPEAT_DELAY` either way. It would only matter if `REPEAT_DELAY` were set
+  below `REPEAT_INTERVAL`.
 - `virtual_shift` is a counter shared by all the custom keys. It is only
   consulted by `SCLN_RSFT` / `I_RSFT` to handle the roll case above.
