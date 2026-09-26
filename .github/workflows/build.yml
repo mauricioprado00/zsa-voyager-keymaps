@@ -1,0 +1,136 @@
+# Build every keymap folder touched by a push against ZSA's firmware25 branch
+# and publish the .bin as a GitHub release named after the folder.
+#
+# - A folder that has no release yet (a new keymap) gets a new release.
+# - A folder that already has one (a modified keymap) gets its .bin replaced
+#   and its tag moved to the commit that was just built.
+name: Build firmware
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      keymaps:
+        description: 'Keymap folders to build, space separated, or "all"'
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  QMK_REPO: zsa/qmk_firmware
+  QMK_REF: firmware25
+  KEYBOARD: zsa/voyager
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      keymaps: ${{ steps.detect.outputs.keymaps }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: detect
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          REQUESTED: ${{ inputs.keymaps }}
+        run: |
+          set -euo pipefail
+          # A keymap is a top-level folder with a keymap.c.
+          all=$(git ls-files -- '*/keymap.c' | awk -F/ 'NF == 2 { print $1 }')
+
+          if [ "$EVENT" = workflow_dispatch ]; then
+            if [ "$REQUESTED" = all ]; then
+              candidates=$all
+            else
+              candidates=$REQUESTED
+            fi
+          else
+            # First push of a branch, or a force push: fall back to the last commit.
+            if ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+              BEFORE=$(git rev-parse --verify -q HEAD^ || git hash-object -t tree /dev/null)
+            fi
+            candidates=$(git diff --name-only "$BEFORE" HEAD | awk -F/ 'NF > 1 { print $1 }' | sort -u)
+          fi
+
+          keymaps=$(for d in $candidates; do
+            if printf '%s\n' "$all" | grep -qxF -- "$d"; then echo "$d"
+            else echo "Skipping $d: not a keymap folder" >&2; fi
+          done | jq -R . | jq -sc .)
+          echo "Keymaps to build: $keymaps"
+          echo "keymaps=$keymaps" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: detect
+    if: needs.detect.outputs.keymaps != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        keymap: ${{ fromJSON(needs.detect.outputs.keymaps) }}
+    env:
+      KEYMAP: ${{ matrix.keymap }}
+    steps:
+      - name: Check out ${{ env.QMK_REPO }}@${{ env.QMK_REF }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.QMK_REPO }}
+          ref: ${{ env.QMK_REF }}
+          submodules: recursive
+          path: qmk_firmware
+
+      - name: Check out keymaps
+        uses: actions/checkout@v4
+        with:
+          path: keymaps
+
+      - name: Copy keymap into the QMK tree
+        run: |
+          set -euo pipefail
+          if [ ! -f "keymaps/$KEYMAP/keymap.json" ]; then
+            echo "::error::$KEYMAP has no keymap.json; firmware25 needs one to load the zsa/oryx module (see README.md)"
+            exit 1
+          fi
+          cp -r "keymaps/$KEYMAP" "qmk_firmware/keyboards/$KEYBOARD/keymaps/$KEYMAP"
+
+      - name: Build
+        working-directory: qmk_firmware
+        env:
+          SKIP_FLASHING_SUPPORT: 1
+        run: |
+          set -euo pipefail
+          # docker_build.sh runs the container with -it, so give it a pseudo-TTY.
+          script -qec "./util/docker_build.sh $KEYBOARD:$KEYMAP" /dev/null
+          bin="$(echo "$KEYBOARD" | tr / _)_$KEYMAP.bin"
+          test -f "$bin"
+          echo "BIN=$PWD/$bin" >> "$GITHUB_ENV"
+          echo "QMK_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.keymap }}
+          path: ${{ env.BIN }}
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          notes="Keymap \`$KEYMAP\` at $GITHUB_SHA, built against [$QMK_REPO@$QMK_REF](https://github.com/$QMK_REPO/commit/$QMK_SHA) ($QMK_SHA).
+
+          Flash the \`.bin\` with [Keymapp](https://www.zsa.io/flash)."
+
+          if gh release view "$KEYMAP" >/dev/null 2>&1; then
+            echo "Updating the existing release $KEYMAP"
+            gh api -X PATCH "repos/$GH_REPO/git/refs/tags/$KEYMAP" -f sha="$GITHUB_SHA" -F force=true >/dev/null
+            gh release upload "$KEYMAP" "$BIN" --clobber
+            gh release edit "$KEYMAP" --notes "$notes"
+          else
+            echo "Creating a new release $KEYMAP"
+            gh release create "$KEYMAP" "$BIN" --target "$GITHUB_SHA" --title "$KEYMAP" --notes "$notes"
+          fi

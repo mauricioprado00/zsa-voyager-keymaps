@@ -39,6 +39,20 @@ The firmware is written to
 `~/qmk_firmware/zsa_voyager_<keymap-folder>.bin`.
 Append `:flash` to the target to build and flash in one step.
 
+### Automatic builds on GitHub
+
+`.github/workflows/build.yml` builds every keymap folder that a push to `main`
+touches, using the same `util/docker_build.sh` against the latest
+[zsa/qmk_firmware](https://github.com/zsa/qmk_firmware) `firmware25`. Each
+keymap gets a GitHub release named after its folder, with the `.bin` attached:
+
+- A new keymap folder gets a new release.
+- A change to an existing folder rebuilds it and replaces the `.bin` on its
+  release, moving the tag to the new commit.
+
+To rebuild without a push, run the workflow from the Actions tab with a list of
+folder names, or `all`. A folder without `keymap.json` fails the build.
+
 ### Flash with Keymapp
 
 Flash the `.bin` with [Keymapp](https://www.zsa.io/flash), ZSA's flashing tool
