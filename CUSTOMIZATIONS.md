@@ -12,8 +12,8 @@ unmodified export is kept next to it as `keymap.c.orig`.
 
 1. `defines.patch` adds the tuning `#define`s near the top of the file (see
    [Settings](#settings)).
-2. `custom-keycodes.patch` adds `BSPC_SHIFT`, `SCLN_RSFT` and `I_RSFT` to
-   `enum custom_keycodes`.
+2. `custom-keycodes.patch` adds `BSPC_SHIFT`, `SCLN_RSFT`, `I_RSFT` and
+   `QUOTE_RSFT` to `enum custom_keycodes`.
 3. Replaces the Oryx mod-taps in the layers:
 
    | Oryx keycode            | Replaced with |
@@ -21,6 +21,7 @@ unmodified export is kept next to it as `keymap.c.orig`.
    | `MT(MOD_LSFT, KC_BSPC)` | `BSPC_SHIFT`  |
    | `MT(MOD_RSFT, KC_SCLN)` | `SCLN_RSFT`   |
    | `MT(MOD_RSFT, KC_I)`    | `I_RSFT`      |
+   | `MT(MOD_RSFT, KC_QUOTE)`| `QUOTE_RSFT`  |
 
 4. Deletes everything from `process_record_user` to the end of the file and
    appends `process-record.tail`, which has the new `process_record_user`,
@@ -68,12 +69,17 @@ key can trigger its Shift, custom keys included.
 
 The tap key is set by `SCLN_RSFT_TAP_CODE`.
 
-### `I_RSFT` (`i` / Right Shift)
+### `I_RSFT` (`i` / Right Shift) and `QUOTE_RSFT` (`'` / Right Shift)
 
-Same behaviour as `SCLN_RSFT`, with `I_RSFT_TAP_CODE` as the tap key. It only
-takes effect if the Oryx layout has `MT(MOD_RSFT, KC_I)` on some layer. It shares
-the `scln_rsft_*` state variables with `SCLN_RSFT`, so the two can't be on the
-same layout at once.
+Same behaviour as `SCLN_RSFT`, with `I_RSFT_TAP_CODE` / `QUOTE_RSFT_TAP_CODE` as
+the tap key. Each only takes effect if the Oryx layout has `MT(MOD_RSFT, KC_I)`
+/ `MT(MOD_RSFT, KC_QUOTE)` on some layer.
+
+All three Right Shift keys share the `scln_rsft_*` state variables, so no two of
+them may be reachable at the same time. Putting them on different layers is fine
+as long as they don't overlap, e.g. `SCLN_RSFT` on the QWERTY layer and
+`QUOTE_RSFT` on the Workman layer, where Workman defines a plain `KC_I` over the
+`;` position.
 
 ## Other handlers in `process-record.tail`
 
@@ -109,6 +115,8 @@ Defined in `tools-customize/defines.patch`:
 | `SCLN_RSFT_TAP_CODE`                   | `KC_SCLN` | tap key of `SCLN_RSFT`                          |
 | `I_RSFT_REPEAT_ON_HOLD`                | `0`       | repeat `i` on hold                              |
 | `I_RSFT_TAP_CODE`                      | `KC_I`    | tap key of `I_RSFT`                             |
+| `QUOTE_RSFT_REPEAT_ON_HOLD`            | `0`       | repeat `'` on hold                              |
+| `QUOTE_RSFT_TAP_CODE`                  | `KC_QUOTE`| tap key of `QUOTE_RSFT`                         |
 | `DUAL_FUNC_0`                          | `LT(14, KC_7)` | keycode handled as tap `=` / hold Esc      |
 
 ## Known quirks
@@ -120,4 +128,5 @@ Defined in `tools-customize/defines.patch`:
   always more than `REPEAT_INTERVAL` old, whether it was reset or not. The first
   repeat fires at `REPEAT_DELAY` either way.
 - `virtual_shift` is a counter shared by all the custom keys. It is only
-  consulted by `SCLN_RSFT` / `I_RSFT` to handle the roll case above.
+  consulted by `SCLN_RSFT` / `I_RSFT` / `QUOTE_RSFT` to handle the roll case
+  above.
