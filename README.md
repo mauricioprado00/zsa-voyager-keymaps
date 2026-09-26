@@ -36,8 +36,16 @@ cd ~/qmk_firmware
 ```
 
 The firmware is written to
-`~/qmk_firmware/zsa_voyager_<keymap-folder>.bin`; flash it with Keymapp.
+`~/qmk_firmware/zsa_voyager_<keymap-folder>.bin`.
 Append `:flash` to the target to build and flash in one step.
+
+### Flash with Keymapp
+
+Flash the `.bin` with [Keymapp](https://www.zsa.io/flash), ZSA's flashing tool
+(Linux, macOS and Windows). Open Keymapp, choose the `.bin` file, and flash it
+when prompted to put the Voyager in bootloader mode. See the
+[flashing guide](https://www.zsa.io/flash) for downloads and the Linux udev
+rules Keymapp needs.
 
 Notes:
 
