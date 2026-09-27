@@ -1,0 +1,5 @@
+✔️ Make ESC a single key on the place of Caps Word.
+✔️ Remove Caps Word from layer 0, put it on Layer 1 where Esc is. ❌possibly with a tapdance with caps lock.
+✔️ Fix Left Shift + ; should always produce : even if Left Shift is released first (need to program)
+❌Backspace when pressed it should do nothing, only when another key is pressed, then is "shifted", but backspace should only delete after release. mabye unless double tapping and second tap keeps pressed then do autorepeat. 
+
